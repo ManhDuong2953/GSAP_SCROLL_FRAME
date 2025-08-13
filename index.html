@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Scroll Frame Animation - Lazy Load + Smooth</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow-x: hidden;
+    }
+
+    .smooth-wrapper {
+      position: fixed;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .smooth-content {
+      position: relative;
+      min-height: 100%;
+    }
+
+    canvas {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      background: black;
+    }
+
+    .loading {
+      color: white;
+      font-size: 1.5em;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="loading" id="loading">Đang tải ảnh...</div>
+  <canvas id="sequence" width="1920" height="1080"></canvas>
+
+  <div class="smooth-wrapper">
+    <div class="smooth-content">
+      <div style="height: 8000px;"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+  <!-- ScrollSmoother requires ScrollTrigger -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollSmoother.min.js"></script>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+
+    const totalFrames = 1000;
+    const preloadFrames = 60;
+    const urls = Array.from({ length: totalFrames }, (_, i) =>
+      `./images/frames/Meet Xiaomi 15 _ Design_frame_${String(i + 1).padStart(3, '0')}.webp`
+    );
+
+    const canvas = document.getElementById("sequence");
+    const ctx = canvas.getContext("2d");
+    const loading = document.getElementById("loading");
+
+    let images = new Array(totalFrames);
+    let loadedCount = 0;
+
+    // Hàm tải ảnh (lazy load)
+    function loadImage(index, callback) {
+      if (images[index]) return callback?.();
+      fetch(urls[index])
+        .then(res => res.blob())
+        .then(blob => createImageBitmap(blob, {
+          resizeWidth: canvas.width,
+          resizeHeight: canvas.height,
+          resizeQuality: "high"
+        }))
+        .then(bitmap => {
+          images[index] = bitmap;
+          loadedCount++;
+          callback?.();
+        })
+        .catch(err => console.error(`Error loading ${urls[index]}`, err));
+    }
+
+    // Preload trước N ảnh
+    for (let i = 0; i < preloadFrames; i++) {
+      loadImage(i, () => {
+        if (loadedCount === preloadFrames) {
+          loading.style.display = "none";
+          startAnimation();
+        }
+      });
+    }
+
+    function startAnimation() {
+      let playhead = { frame: 0 };
+      let currentFrame = -1;
+      let lastTime = 0;
+      const fps = 30;
+
+      function updateImage() {
+        let now = performance.now();
+        if (now - lastTime < 1000 / fps) return;
+        lastTime = now;
+
+        let f = Math.round(playhead.frame);
+        if (f !== currentFrame) {
+          // Tải trước frame hiện tại và kế tiếp
+          loadImage(f);
+          loadImage(f + 1);
+          ctx.drawImage(images[f] || images[currentFrame], 0, 0);
+          currentFrame = f;
+        }
+      }
+
+      ctx.drawImage(images[0], 0, 0);
+
+      const smoother = ScrollSmoother.create({
+        wrapper: ".smooth-wrapper",
+        content: ".smooth-content",
+        smooth: 1,
+        effects: true
+      });
+
+      gsap.to(playhead, {
+        frame: totalFrames - 1,
+        ease: "none",
+        onUpdate: updateImage,
+        scrollTrigger: {
+          trigger: ".smooth-content",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 2,
+          scroller: smoother.wrapper()
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
