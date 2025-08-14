@@ -73,8 +73,8 @@
     gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
     const totalFrames = 1000;
-    const fps = 60;
-    const preloadFrames = 1000;
+    const fps = 30;
+    const preloadFrames = fps*5;
     const urls = Array.from({ length: totalFrames }, (_, i) =>
       `./images/frames/Meet Xiaomi 15 _ Design_frame_${String(i + 1).padStart(3, '0')}.webp`
     );
