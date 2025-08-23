@@ -3,20 +3,18 @@ name: Deploy static site
 on:
   push:
     branches:
-      - main   # chạy khi push vào nhánh main
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # B1: Lấy code từ repo
       - name: Checkout
         uses: actions/checkout@v3
 
-      # B2: Deploy thẳng lên GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .   # deploy toàn bộ thư mục gốc (chứa index.html)
+          publish_dir: .        # deploy root (chứa index.html)
+          publish_branch: gh-pages   # branch đích để GitHub Pages đọc
